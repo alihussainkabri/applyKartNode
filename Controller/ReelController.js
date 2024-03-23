@@ -88,9 +88,9 @@ async function uploadReel(req,res){
     } catch (error) {
         status = 500
         message = error.message
+        return res.json({status,message})
     }
 
-    return res.json({status,message})
 }
 
 async function ReelList(req,res){
