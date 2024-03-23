@@ -36,6 +36,10 @@ app.use((req, res, next) => {
 })
 
 app.use("/api", routes);
+
+app.get("/",(req,res) => {
+    return res.send("server up")
+})
 app.listen(port, () => {
     console.log("Port is up on ", port)
 })
