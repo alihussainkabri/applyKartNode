@@ -104,7 +104,7 @@ async function ReelList(req,res){
         list = await knex('reels').orderBy('id','desc').limit(8).offset(offset)
         console.log(current_user_id)
         for (let i=0;i<list.length;i++){
-            const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',current_user_id)
+            const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',current_user_id).where('action','like')
             
             if (result.length > 0){
                 list[i]['has_liked'] = true
@@ -207,7 +207,7 @@ async function createPostImpression(req, res) {
                         post_id: id,
                         action: inputs.action,
                         comment: inputs.comment ? inputs.comment : '',
-                        created_by: req.user_data.id,
+                        created_by: user_id,
                         created_datetime: moment.utc().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]'),
                     }
 
@@ -240,12 +240,113 @@ async function createPostImpression(req, res) {
     } catch (error) {
         status = 500;
         message = error.message;
+        console.log(error)
     }
     return res.json({ status, message, comment_id })
+}
+
+async function deleteReel(req,res){
+    let status = 500
+    let message = 'Oops something went wrong!'
+    const {reel_id,user_id} = req.params
+
+    try {
+        await knex('reels').where('id',reel_id).where('created_by',user_id).del().then(async response => {
+            if (response){
+                await knex("post_impressions").where("post_id", reel_id).where("created_by", user_id).del()
+            }
+        })
+
+        status = 200
+        message = 'Reel deleted successfully!'
+    } catch (error) {
+        status = 500
+        message = error.message
+    }
+
+    return res.json({status,message})
+
+}
+
+async function viewReel(req,res){
+    let status = 500
+    let message = 'Oops something went wrong!'
+
+    const {reel_id} = req.params;
+
+    try {
+        await knex('reels').where('id',reel_id).then(async response => {
+            if (response.length > 0){
+                await knex('reels').where('id',reel_id).update({
+                    view_count : response[0].view_count + 1
+                })
+            }
+        })
+
+        status = 200
+        message = 'Data fetched successfully!'
+    } catch (error) {
+        status = 500
+        message = error.message
+    }
+
+    return res.json({status,message})
+
+}
+
+async function getCommentByPostID(req,res){
+    let status = 500
+    let message = 'Oops something went wrong!'
+    let details = []
+    const offset = (req.query.page - 1) * 10
+    
+    try {
+        details = await knex('post_impressions').where('post_id',req.params.reel_id).where('action','comment').orderBy('id','desc').limit(10).offset(offset)
+
+       status = 200
+       message = "Comment fetched successfully!"
+    } catch (error) {
+        status = 500
+        message = error.message
+    }
+
+    return res.json({status,message,details})
+}
+
+async function getReelBasedUser(req,res){
+    let status = 500
+    let message = 'Oops something went wrong!'
+    let list = []
+
+    try {
+        list = await knex('reels').where('created_by',req.params.user_id).orderBy('id','desc').limit(5)
+        for (let i=0;i<list.length;i++){
+            const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',req.params.current_user_id).where('action','like')
+            
+            if (result.length > 0){
+                list[i]['has_liked'] = true
+            }else{
+                list[i]['has_liked'] = false
+            }
+        }
+
+        status = 200
+        message = 'Reels fetched successfully!'
+    } catch (error) {
+        status = 500
+        message = error.message
+    }
+
+    return res.json({status,message,list})
+
 }
 
 module.exports = {
     uploadReel,
     ReelList,
-    createPostImpression
+    createPostImpression,
+    deleteReel,
+    viewReel,
+    getCommentByPostID,
+    getReelBasedUser
 }
