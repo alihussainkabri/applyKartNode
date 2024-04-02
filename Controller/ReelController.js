@@ -101,7 +101,7 @@ async function ReelList(req,res){
 
     try {
         let offset = (req.query.page - 1) * 8 
-        list = await knex('reels').orderBy('id','desc').limit(8).offset(offset)
+        list = await knex('reels').where('created_by','!=','2014').orderBy('id','desc').limit(8).offset(offset)
         console.log(current_user_id)
         for (let i=0;i<list.length;i++){
             const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',current_user_id).where('action','like')
@@ -341,6 +341,23 @@ async function getReelBasedUser(req,res){
 
 }
 
+async function getOnboardingReel(req,res){
+    let status = 500
+    let message = 'Oops something went wrong!'
+    let list = []
+
+    try {
+        list = await knex('reels').where('created_by','2014').orderBy('id','desc')
+        status = 200
+        message = 'Reels fetched successfully!'
+    } catch (error) {
+        status = 500
+        message = error.message
+    }
+
+    return res.json({status,message,list})
+}
+
 module.exports = {
     uploadReel,
     ReelList,
@@ -348,5 +365,6 @@ module.exports = {
     deleteReel,
     viewReel,
     getCommentByPostID,
-    getReelBasedUser
+    getReelBasedUser,
+    getOnboardingReel
 }
