@@ -42,11 +42,11 @@ async function uploadReel(req,res){
                     '-c:v libx264', // Use H.264 codec
                     '-crf 23', // Adjusted Constant Rate Factor for better quality
                     '-preset medium', // Slower encoding preset for better quality
-                    '-b:v 1500k', // Increased Bitrate for better quality
+                    '-b:v 1000k', // Increased Bitrate for better quality
                     '-profile:v baseline',
                     '-level 3.0',
                     '-start_number 0',
-                    '-hls_time 6', // segment duration in seconds
+                    '-hls_time 3', // segment duration in seconds
                     '-hls_list_size 0', // 0 means keep all segments
                     '-f hls', // output format
                 ])
