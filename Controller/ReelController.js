@@ -101,8 +101,8 @@ async function ReelList(req,res){
     const {current_user_id} = req.params;
 
     try {
-        let offset = (req.query.page - 1) * 8 
-        list = await knex('reels').where('created_by','!=','2014').orderBy('id','desc').limit(8).offset(offset)
+        let offset = (req.query.page - 1) * 4 
+        list = await knex('reels').where('created_by','!=','2014').orderBy('id','desc').limit(4).offset(offset)
         console.log(current_user_id)
         for (let i=0;i<list.length;i++){
             const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',current_user_id).where('action','like')
