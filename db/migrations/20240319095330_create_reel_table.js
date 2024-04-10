@@ -9,7 +9,7 @@ exports.up = function(knex) {
     table.string('media')
     table.string('created_by')
     table.string('preview_image')
-    table.dateTime('created_at')
+    table.string('created_at')
   })
 };
 
