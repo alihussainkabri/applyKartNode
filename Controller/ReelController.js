@@ -6,8 +6,12 @@ const fs = require('fs')
 
 ffmpeg.setFfmpegPath(ffmpegpath)
 
+const Jimp = require('jimp');
+const fs = require('fs').promises;
+const path = require('path');
 
-async function uploadReel(req,res){
+
+async function uploadReel(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
     let inputs = req.body
@@ -24,11 +28,64 @@ async function uploadReel(req,res){
             // })
 
             let preview_image = new Date().toISOString() + '.jpg'
+            let share_image = new Date().toISOString() + '_processed.jpg'
             ffmpeg(path.join(process.cwd(), 'public', 'uploads', req.files[0].filename))
                 .seekInput(2) // Seek to the specified time in seconds
                 .frames(1) // Capture only one frame
-                .on('end', () => {
+                .on('end', async () => {
                     console.log('Preview image generated successfully');
+
+                    // Open the image
+                    const image = await Jimp.read(path.join(process.cwd(), 'public', 'uploads', preview_image));
+
+                    // Load the logo image
+                    const logo = await Jimp.read(path.join(process.cwd(), 'logo.png'));
+
+                    // Define the desired width of the logo relative to the image width
+                    const logoWidthPercentage = 0.2; // 20% of the image width
+
+                    // Calculate the scaled width and height of the logo
+                    const scaledLogoWidth = image.bitmap.width * logoWidthPercentage;
+                    const scaledLogoHeight = (scaledLogoWidth / logo.bitmap.width) * logo.bitmap.height;
+
+                    // Position the logo on the top right corner with some padding
+                    const logoX = 10; // Adjust padding as needed
+                    const logoY = 10; // Adjust padding as needed
+
+                    // Resize the logo to the calculated dimensions
+                    logo.resize(scaledLogoWidth, scaledLogoHeight);
+
+                    // Composite the logo onto the image
+                    image.composite(logo, logoX, logoY);
+
+                    // Load the play video icon
+                    const playButton = await Jimp.read(path.join(process.cwd(), 'playvideo.png'));
+
+                    // Define the desired width and height of the play button
+                    const desiredWidth = 100; // Adjust as needed
+                    const desiredHeight = 100; // Adjust as needed
+
+                    // Resize the play button icon
+                    playButton.resize(desiredWidth, desiredHeight);
+
+                    // Calculate the position to center the play button vertically and horizontally
+                    const centerX = (image.bitmap.width - playButton.bitmap.width) / 2;
+                    const centerY = (image.bitmap.height - playButton.bitmap.height) / 2;
+
+                    // Composite the play button onto the image
+                    image.composite(playButton, centerX, centerY);
+
+
+
+                    const outputPath = path.join(process.cwd(), 'public', 'output',share_image )
+
+                    // Save the modified image
+                    await image.writeAsync(outputPath);
+                    console.log(`Processed image: ${outputPath}`);
+
+
+
+
                 })
                 .on('error', (err) => {
                     console.error('Error generating preview image:', err);
@@ -56,9 +113,10 @@ async function uploadReel(req,res){
                     await knex('reels').insert({
                         type: 'video',
                         media: 'videos/' + new_name,
-                        caption : inputs.caption,
+                        caption: inputs.caption,
                         created_by: inputs.user_id,
                         preview_image: 'uploads/' + preview_image,
+                        share_image : 'output/' + share_image,
                         created_at: moment.utc().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')
                     }, 'id').then(create => {
                         if (create.length > 0) {
@@ -89,27 +147,27 @@ async function uploadReel(req,res){
     } catch (error) {
         status = 500
         message = error.message
-        return res.json({status,message})
+        return res.json({ status, message })
     }
 
 }
 
-async function ReelList(req,res){
+async function ReelList(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
     let list = []
-    const {current_user_id} = req.params;
+    const { current_user_id } = req.params;
 
     try {
-        let offset = (req.query.page - 1) * 4 
-        list = await knex('reels').where('created_by','!=','2014').orderBy('id','desc').limit(4).offset(offset)
+        let offset = (req.query.page - 1) * 4
+        list = await knex('reels').where('created_by', '!=', '2014').orderBy('id', 'desc').limit(4).offset(offset)
         console.log(current_user_id)
-        for (let i=0;i<list.length;i++){
-            const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',current_user_id).where('action','like')
-            
-            if (result.length > 0){
+        for (let i = 0; i < list.length; i++) {
+            const result = await knex('post_impressions').where('post_id', list[i].id).where('created_by', current_user_id).where('action', 'like')
+
+            if (result.length > 0) {
                 list[i]['has_liked'] = true
-            }else{
+            } else {
                 list[i]['has_liked'] = false
             }
         }
@@ -121,7 +179,7 @@ async function ReelList(req,res){
         message = error.message
     }
 
-    return res.json({status,message,list})
+    return res.json({ status, message, list })
 
 }
 
@@ -246,14 +304,14 @@ async function createPostImpression(req, res) {
     return res.json({ status, message, comment_id })
 }
 
-async function deleteReel(req,res){
+async function deleteReel(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
-    const {reel_id,user_id} = req.params
+    const { reel_id, user_id } = req.params
 
     try {
-        await knex('reels').where('id',reel_id).where('created_by',user_id).del().then(async response => {
-            if (response){
+        await knex('reels').where('id', reel_id).where('created_by', user_id).del().then(async response => {
+            if (response) {
                 await knex("post_impressions").where("post_id", reel_id).where("created_by", user_id).del()
             }
         })
@@ -265,21 +323,21 @@ async function deleteReel(req,res){
         message = error.message
     }
 
-    return res.json({status,message})
+    return res.json({ status, message })
 
 }
 
-async function viewReel(req,res){
+async function viewReel(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
 
-    const {reel_id} = req.params;
+    const { reel_id } = req.params;
 
     try {
-        await knex('reels').where('id',reel_id).then(async response => {
-            if (response.length > 0){
-                await knex('reels').where('id',reel_id).update({
-                    view_count : response[0].view_count + 1
+        await knex('reels').where('id', reel_id).then(async response => {
+            if (response.length > 0) {
+                await knex('reels').where('id', reel_id).update({
+                    view_count: response[0].view_count + 1
                 })
             }
         })
@@ -291,42 +349,42 @@ async function viewReel(req,res){
         message = error.message
     }
 
-    return res.json({status,message})
+    return res.json({ status, message })
 
 }
 
-async function getCommentByPostID(req,res){
+async function getCommentByPostID(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
     let details = []
     const offset = (req.query.page - 1) * 10
-    
-    try {
-        details = await knex('post_impressions').where('post_id',req.params.reel_id).where('action','comment').orderBy('id','desc').limit(10).offset(offset)
 
-       status = 200
-       message = "Comment fetched successfully!"
+    try {
+        details = await knex('post_impressions').where('post_id', req.params.reel_id).where('action', 'comment').orderBy('id', 'desc').limit(10).offset(offset)
+
+        status = 200
+        message = "Comment fetched successfully!"
     } catch (error) {
         status = 500
         message = error.message
     }
 
-    return res.json({status,message,details})
+    return res.json({ status, message, details })
 }
 
-async function getReelBasedUser(req,res){
+async function getReelBasedUser(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
     let list = []
 
     try {
-        list = await knex('reels').where('created_by',req.params.user_id).orderBy('id','desc').limit(5)
-        for (let i=0;i<list.length;i++){
-            const result =  await knex('post_impressions').where('post_id',list[i].id).where('created_by',req.params.current_user_id).where('action','like')
-            
-            if (result.length > 0){
+        list = await knex('reels').where('created_by', req.params.user_id).orderBy('id', 'desc').limit(5)
+        for (let i = 0; i < list.length; i++) {
+            const result = await knex('post_impressions').where('post_id', list[i].id).where('created_by', req.params.current_user_id).where('action', 'like')
+
+            if (result.length > 0) {
                 list[i]['has_liked'] = true
-            }else{
+            } else {
                 list[i]['has_liked'] = false
             }
         }
@@ -338,17 +396,17 @@ async function getReelBasedUser(req,res){
         message = error.message
     }
 
-    return res.json({status,message,list})
+    return res.json({ status, message, list })
 
 }
 
-async function getOnboardingReel(req,res){
+async function getOnboardingReel(req, res) {
     let status = 500
     let message = 'Oops something went wrong!'
     let list = []
 
     try {
-        list = await knex('reels').where('created_by','2014').orderBy('id','desc')
+        list = await knex('reels').where('created_by', '2014').orderBy('id', 'desc')
         status = 200
         message = 'Reels fetched successfully!'
     } catch (error) {
@@ -356,7 +414,7 @@ async function getOnboardingReel(req,res){
         message = error.message
     }
 
-    return res.json({status,message,list})
+    return res.json({ status, message, list })
 }
 
 module.exports = {
