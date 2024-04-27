@@ -7,7 +7,6 @@ const fs = require('fs')
 ffmpeg.setFfmpegPath(ffmpegpath)
 
 const Jimp = require('jimp');
-const fs = require('fs').promises;
 const path = require('path');
 
 
