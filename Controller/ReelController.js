@@ -7,7 +7,6 @@ const fs = require('fs')
 ffmpeg.setFfmpegPath(ffmpegpath)
 
 const Jimp = require('jimp');
-const path = require('path');
 
 
 async function uploadReel(req, res) {
