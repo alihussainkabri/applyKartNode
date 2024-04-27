@@ -58,7 +58,7 @@ async function processImage(imagePath, outputPath,inputFile,OutputFile) {
 }
 
 // Function to process all images in the uploads folder
-async function processImagesInFolder() {
+async function processImagesInFolder(req,res) {
     try {
         // Path to the uploads folder
         const folderPath = path.join(process.cwd(), 'public', 'uploads');
@@ -81,6 +81,8 @@ async function processImagesInFolder() {
     } catch (error) {
         console.error('Error reading files from uploads folder:', error);
     }
+
+    return res.send('data uploaded')
 }
 
 module.exports = {
