@@ -37,6 +37,10 @@ app.use((req, res, next) => {
 
 app.use("/api", routes);
 
+app.get('/redirect',(req,res,next) => {
+    return res.sendFile(path.join(process.cwd(),'redirect.html'))
+})
+
 app.get("/",(req,res) => {
     return res.send("server up")
 })
