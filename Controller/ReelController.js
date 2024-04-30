@@ -158,7 +158,21 @@ async function ReelList(req, res) {
 
     try {
         let offset = (req.query.page - 1) * 4
-        list = await knex('reels').where('created_by', '!=', '2014').orderBy('id', 'desc').limit(4).offset(offset)
+        if (req.query.special && req.query.page == 1){
+            await knex('reels').where('id',req.query.special).then(async reel_special => {
+                if (reel_special.length > 0){
+                    list.push(reel_special[0])
+                    await knex('reels').where('created_by', '!=', '2014').where('id','!=',req.query.special).orderBy('id', 'desc').limit(4).offset(offset).then(bulk_response => {
+                        if (bulk_response.length > 0){
+                            list = [...list,...bulk_response]
+                        }
+                    })
+                }
+            })
+            
+        }else{
+            list = await knex('reels').where('created_by', '!=', '2014').orderBy('id', 'desc').limit(4).offset(offset)
+        }
         console.log(current_user_id)
         for (let i = 0; i < list.length; i++) {
             const result = await knex('post_impressions').where('post_id', list[i].id).where('created_by', current_user_id).where('action', 'like')
