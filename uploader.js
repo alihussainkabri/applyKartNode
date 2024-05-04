@@ -5,6 +5,7 @@ const ffmpeg = require('fluent-ffmpeg')
 const path = require('path')
 
 ffmpeg.setFfmpegPath(ffmpegpath)
+const Jimp = require('jimp');
 
 // Read the text file
 const textFile = fs.readFileSync('inputs.txt', 'utf8');
@@ -51,11 +52,60 @@ for (let i = 0; i < arr3.length; i++) {
     let caption = arr3[i]
 
     let preview_image = new Date().toISOString() + '.jpg'
+    let share_image = new Date().toISOString() + '_processed.jpg'
     ffmpeg(path.join(process.cwd(), 'Videos', filename))
         .seekInput(2) // Seek to the specified time in seconds
         .frames(1) // Capture only one frame
-        .on('end', () => {
+        .on('end', async () => {
             console.log('Preview image generated successfully');
+
+            const image = await Jimp.read(path.join(process.cwd(), 'public', 'uploads', preview_image));
+
+            // Load the logo image
+            const logo = await Jimp.read(path.join(process.cwd(), 'logo.png'));
+
+            // Define the desired width of the logo relative to the image width
+            const logoWidthPercentage = 0.2; // 20% of the image width
+
+            // Calculate the scaled width and height of the logo
+            const scaledLogoWidth = image.bitmap.width * logoWidthPercentage;
+            const scaledLogoHeight = (scaledLogoWidth / logo.bitmap.width) * logo.bitmap.height;
+
+            // Position the logo on the top right corner with some padding
+            const logoX = 10; // Adjust padding as needed
+            const logoY = 10; // Adjust padding as needed
+
+            // Resize the logo to the calculated dimensions
+            logo.resize(scaledLogoWidth, scaledLogoHeight);
+
+            // Composite the logo onto the image
+            image.composite(logo, logoX, logoY);
+
+            // Load the play video icon
+            const playButton = await Jimp.read(path.join(process.cwd(), 'playvideo.png'));
+
+            // Define the desired width and height of the play button
+            const desiredWidth = 100; // Adjust as needed
+            const desiredHeight = 100; // Adjust as needed
+
+            // Resize the play button icon
+            playButton.resize(desiredWidth, desiredHeight);
+
+            // Calculate the position to center the play button vertically and horizontally
+            const centerX = (image.bitmap.width - playButton.bitmap.width) / 2;
+            const centerY = (image.bitmap.height - playButton.bitmap.height) / 2;
+
+            // Composite the play button onto the image
+            image.composite(playButton, centerX, centerY);
+
+
+
+            const outputPath = path.join(process.cwd(), 'public', 'output', share_image)
+
+            // Save the modified image
+            await image.writeAsync(outputPath);
+            console.log(`Processed image: ${outputPath}`);
+
         })
         .on('error', (err) => {
             console.error('Error generating preview image:', err);
@@ -82,13 +132,14 @@ for (let i = 0; i < arr3.length; i++) {
             // console.log(`Video compressed successfully: ${outputPath}`);
 
             appendArr({
-                id: 100 +i + 1,
+                id: 100 + i + 1,
                 type: 'video',
                 media: 'videos/' + new_name,
                 caption: caption,
                 created_by: generateRandomNumber().toString(),
                 preview_image: 'uploads/' + preview_image,
-                created_at: moment.utc().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')
+                share_image : 'output/' + share_image,
+                created_at: moment.utc().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]'),
             })
         })
         .on('error', err => {

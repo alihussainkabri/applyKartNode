@@ -111,8 +111,8 @@ async function uploadReel(req, res) {
                     await knex('reels').insert({
                         type: 'video',
                         media: 'videos/' + new_name,
-                        caption: inputs.caption,
-                        created_by: inputs.user_id,
+                        caption: req.query.caption ? req.query.caption : inputs.caption,
+                        created_by: req.query.user_id ? req.query.user_id : inputs.user_id,
                         preview_image: 'uploads/' + preview_image,
                         share_image : 'output/' + share_image,
                         created_at: moment.utc().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')
