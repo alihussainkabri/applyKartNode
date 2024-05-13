@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const {engine} = require('express-handlebars');
 const fs = require('fs')
 const Multer = require('multer');
 const path = require('path');
@@ -28,6 +29,10 @@ let upload = Multer({
     storage: storage,
     limits: 500 * 1024
 });
+app.engine('handlebars', engine());
+app.set('view engine', 'handlebars');
+app.set('views', './views');
+
 app.use(upload.any());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
@@ -37,8 +42,14 @@ app.use((req, res, next) => {
 
 app.use("/api", routes);
 
-app.get('/redirect',(req,res,next) => {
-    return res.sendFile(path.join(process.cwd(),'redirect.html'))
+app.get('/redirect',async (req,res,next) => {
+    if (req.query.reelID){
+        await knex('reels').where('id',req.query.reelID).then(response => {
+            if (response.length > 0){
+                return res.render('redirect',{data : {...response[0],share_image : 'https://share.applykart.co/' + response[0].share_image}})
+            }
+        })
+    }
 })
 
 app.get("/",(req,res) => {
