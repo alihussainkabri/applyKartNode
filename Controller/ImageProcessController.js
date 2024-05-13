@@ -39,8 +39,8 @@ async function processImage(imagePath, outputPath,inputFile,OutputFile) {
         playButton.resize(desiredWidth, desiredHeight);
 
         // Calculate the position to center the play button vertically and horizontally
-        const centerX = (image.bitmap.width - playButton.bitmap.width) / 2;
-        const centerY = (image.bitmap.height - playButton.bitmap.height) / 2;
+        const centerX = (image.bitmap.width - desiredWidth) / 2;
+        const centerY = (image.bitmap.height - desiredHeight) / 2;
 
         // Composite the play button onto the image
         image.composite(playButton, centerX, centerY);
