@@ -46,7 +46,7 @@ app.get('/redirect',async (req,res,next) => {
     if (req.query.reelID){
         await knex('reels').where('id',req.query.reelID).then(response => {
             if (response.length > 0){
-                return res.render('redirect',{data : {...response[0],share_image : 'https://share.applykart.co/' + response[0].share_image}})
+                return res.render('redirect',{data : {...response[0],share_image : 'https://applykart.b-cdn.net/' + response[0].share_image}})
             }
         })
     }
